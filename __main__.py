@@ -10,10 +10,13 @@ import os.path
 import readchar
 
 # CONFIG HERE
-searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
+# searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
+searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/?search%5Bfilter_enum_type%5D%5B0%5D=parttime&search%5Bfilter_enum_experience%5D%5B0%5D=exp_no&search%5Bfilter_enum_special_requirements%5D%5B0%5D=student_status&search%5Bfilter_enum_agreement%5D%5B0%5D=zlecenie"
+
 login = "dc_test_1@op.pl"
 password = "DeliveryCouple123"
 messageString = "Dzien dobry, \n Czy jest możliwość wymiany na komputer PC?"
+firstName = "Paweł"
 
 mainBrowser = Chrome()
 
@@ -23,7 +26,8 @@ def sendMessage(offer_url):
 
     main_window = mainBrowser.current_window_handle
     mainBrowser.execute_script("window.open();")
-    mainBrowser.switch_to_window(mainBrowser.window_handles[1])
+    print("Window handles length:", len(mainBrowser.window_handles))
+    mainBrowser.switch_to.window(mainBrowser.window_handles[0])
     mainBrowser.get(offer_url)
     message_url = mainBrowser.find_element(By.XPATH,"//*[@id=\"contact_methods\"]/li[1]/a").get_attribute('href')
     mainBrowser.get(message_url)
@@ -44,14 +48,55 @@ def sendMessage(offer_url):
     submit_button.click()
     time.sleep(5)
     mainBrowser.close()
-    mainBrowser.switch_to_window(main_window)
+    mainBrowser.switch_to.window(main_window)
+
+def sendJobApplication(offer_url):
+    print("Message is sending!")
+
+    main_window = mainBrowser.current_window_handle
+    mainBrowser.execute_script("window.open();")
+    mainBrowser.switch_to.window(mainBrowser.window_handles[0])
+    mainBrowser.get(offer_url)
+    application_url = mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").get_attribute('href')
+    mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
+    # mainBrowser.get(application_url)
+    time.sleep(2)
+
+    firstName_text_field = mainBrowser.find_element(By.NAME, "firstName")
+    firstName_text_field.send_keys(firstName)
+
+    mainBrowser.find_element(By.XPATH, "//*[@data-testid=\"attach-cv\"]").click()
+    fileInput = mainBrowser.find_element(By.CSS_SELECTOR, "input[data-testid='applyform-cv-upload-input']")
+    fileInput.send_keys("/home/koczka/Documents/Abstract.pdf")
+    time.sleep(2)
+
+    # message_text_area = mainBrowser.find_element(By.XPATH,"//*[@id=\"ask-text\"]")
+    # message_text_area.send_keys(messageString)
+    # print("Your action needed!")
+    # print("Please tell us if the captcha exists, Write yes or no and press enter")
+    # user_key_1 = readchar.readkey()
+    # if user_key_1 == 'y' or user_key_1 == 'Y':
+    #     print("Please solve captcha and press enter!")
+    #     input()
+    #     submit_button = mainBrowser.find_element(By.XPATH,
+    #         "//*[@id=\"contact-form\"]/fieldset/div[4]/div/span/input")
+    # elif user_key_1 == 'n' or user_key_1 == 'N':
+    #     submit_button =  mainBrowser.find_element(By.XPATH,
+    #         "//*[@id=\"contact-form\"]/fieldset/div[3]/div/span/input")
+
+    # submit_button.click()
+    time.sleep(5)
+    mainBrowser.close()
+    mainBrowser.switch_to.window(main_window)
 
 
 def getNextPageUrl(is_authenticated):
     print("Changing to next page")
     try:
-        next_button_url = mainBrowser.find_element(By.XPATH,
-            "//*[@id=\"body-container\"]/div[3]/div/div[8]/span[9]/a").get_attribute('href')
+        # next_button_url = mainBrowser.find_element(By.XPATH,
+        #     "//*[@id=\"body-container\"]/div[3]/div/div[8]/span[9]/a").get_attribute('href')
+        next_button_url = mainBrowser.find_element(By.XPATH, "//*[@data-testid='pagination-forward']").get_attribute('href')
+       
         print(next_button_url)
         return next_button_url
     except NoSuchElementException as exception:
@@ -85,7 +130,7 @@ def askUserDoesHeWant(offer_url, is_authenticated):
             offer_database = open("offerDatabase.txt", "a")
             offer_database.write(offer_url)
             offer_database.close()
-            sendMessage(offer_url)
+            sendJobApplication(offer_url)
     elif user_key == 'n' or user_key == 'N':
         print("Input: No")
         offer_database = open("offerDatabase.txt", "a")
@@ -134,32 +179,25 @@ def getListOffers(is_authenticated, mode):
         print("Please now input what offer title CANNOT contain, 0 for nothing")
         title_cannot_contain = input()
     print("Getting list of offers")
+    array_offer_names = mainBrowser.find_elements(By.CLASS_NAME, "css-13gxtrp")
 
-    array_offer_names = mainBrowser.find_elements_by_xpath(
-        "//a[contains(@class, 'marginright5') and contains(@class, 'link') and contains(@class, 'linkWithHash') and contains(@class, 'detailsLink') and not(contains(@class, 'detailsLinkPromoted'))]")
-    array_offer_prices = mainBrowser.find_elements_by_xpath(
-        '//td[normalize-space(@class)="offer"]//p[@class="price"]/strong')
-    for offerName, offerPrice in zip(array_offer_names, array_offer_prices):
+    for offerName in array_offer_names:
         print("------------------------------")
-        if checkIfFileContainsString(offerName.get_attribute('href')):
-            print("One offer has been skipped!")
-        else:
-            print(offerName.text)
-            print(offerPrice.text)
-            if mode != "skipAsk":
-                askUserDoesHeWant(offerName.get_attribute("href"), is_authenticated)
+        # if checkIfFileContainsString(offerName.get_attribute('href')):
+        #     print("One offer has been skipped!")    
+        # else:
+        print(offerName.text)
+        # print(offerPrice.text)
+        if mode != "skipAsk":
+            askUserDoesHeWant(offerName.get_attribute("href"), is_authenticated)
     mainBrowser.get(getNextPageUrl(is_authenticated))
     getListOffers(is_authenticated, mode)
 
 
 def doAuth():
-    # print("Please enter here your login and click enter")
-    # login = input()
-    # print("Please enter here your password and click enter")
-    # password = input()
     print("Attempting to log in")
     mainBrowser.get("https://www.olx.pl/")
-    time.sleep(5)
+    time.sleep(3)
     mainBrowser.find_element(By.ID, "onetrust-accept-btn-handler").click()
     moj_olx_button_url = mainBrowser.find_element(By.XPATH, "//*[@data-cy='myolx-link']").get_attribute('href')
     print("Logging using predefined login and password")
@@ -167,10 +205,6 @@ def doAuth():
     mainBrowser.find_element(By.NAME, "username").send_keys(login)
     mainBrowser.find_element(By.NAME, "password").send_keys(password)
     mainBrowser.find_element(By.XPATH, "//*[@data-testid='login-submit-button']").click()
-
-    # mainBrowser.find_element(By.XPATH,"//*[@id=\"userEmail\"]").send_keys(login)
-    # mainBrowser.find_element(By.XPATH,"//*[@id=\"userPass\"]").send_keys(password)
-    # mainBrowser.find_element(By.XPATH,"//*[@id=\"se_userLogin\"]").click()
     
     i = 0
     while mainBrowser.current_url != "https://www.olx.pl/":
@@ -215,9 +249,9 @@ def mainTab(is_authenticated):
         print("------------------------------")
         print("What would you like to do today?")
     print("1. Auth me on OLX. NEEDED TO SEND MESSAGES! Currently: " + is_authenticated)
-    print("3. Search for new offers")
-    print("4. Scan for offers(program won't ask you about anything, clear scanning)")
-    print("5. Settings")
+    print("2. Search for new offers")
+    print("3. Search for new offers - no user input")
+    print("4. Settings")
     user_key = readchar.readkey()
     if user_key == '1':
         doAuth()
