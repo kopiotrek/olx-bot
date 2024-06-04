@@ -10,9 +10,9 @@ import os.path
 import readchar
 
 # CONFIG HERE
-searching_url = "https://www.olx.pl/pomorskie/q-macbook/"
-login = "login"
-password = "pass"
+searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
+login = "dc_test_1@op.pl"
+password = "DeliveryCouple123"
 messageString = "Dzien dobry, \n Czy jest możliwość wymiany na komputer PC?"
 
 mainBrowser = Chrome()
@@ -25,9 +25,9 @@ def sendMessage(offer_url):
     mainBrowser.execute_script("window.open();")
     mainBrowser.switch_to_window(mainBrowser.window_handles[1])
     mainBrowser.get(offer_url)
-    message_url = mainBrowser.find_element_by_xpath("//*[@id=\"contact_methods\"]/li[1]/a").get_attribute('href')
+    message_url = mainBrowser.find_element(By.XPATH,"//*[@id=\"contact_methods\"]/li[1]/a").get_attribute('href')
     mainBrowser.get(message_url)
-    message_text_area = mainBrowser.find_element_by_xpath("//*[@id=\"ask-text\"]")
+    message_text_area = mainBrowser.find_element(By.XPATH,"//*[@id=\"ask-text\"]")
     message_text_area.send_keys(messageString)
     print("Your action needed!")
     print("Please tell us if the captcha exists, Write yes or no and press enter")
@@ -35,10 +35,10 @@ def sendMessage(offer_url):
     if user_key_1 == 'y' or user_key_1 == 'Y':
         print("Please solve captcha and press enter!")
         input()
-        submit_button = mainBrowser.find_element_by_xpath(
+        submit_button = mainBrowser.find_element(By.XPATH,
             "//*[@id=\"contact-form\"]/fieldset/div[4]/div/span/input")
     elif user_key_1 == 'n' or user_key_1 == 'N':
-        submit_button =  mainBrowser.find_element_by_xpath(
+        submit_button =  mainBrowser.find_element(By.XPATH,
             "//*[@id=\"contact-form\"]/fieldset/div[3]/div/span/input")
 
     submit_button.click()
@@ -50,7 +50,7 @@ def sendMessage(offer_url):
 def getNextPageUrl(is_authenticated):
     print("Changing to next page")
     try:
-        next_button_url = mainBrowser.find_element_by_xpath(
+        next_button_url = mainBrowser.find_element(By.XPATH,
             "//*[@id=\"body-container\"]/div[3]/div/div[8]/span[9]/a").get_attribute('href')
         print(next_button_url)
         return next_button_url
@@ -64,7 +64,7 @@ def additionalOfferInfo(offer_url):
     print("------------------------------")
     additional_browser = Chrome()
     additional_browser.get(offer_url)
-    offer_description = additional_browser.find_element_by_xpath("//*[@id=\"textContent\"]").text
+    offer_description = additional_browser.find_element(By.XPATH,"//*[@id=\"textContent\"]").text
     additional_browser.close()
     return offer_description
 
@@ -159,14 +159,21 @@ def doAuth():
     # password = input()
     print("Attempting to log in")
     mainBrowser.get("https://www.olx.pl/")
-    moj_olx_button_url = mainBrowser.find_element_by_xpath("//*[@id=\"topLoginLink\"]").get_attribute('href')
+    time.sleep(5)
+    mainBrowser.find_element(By.ID, "onetrust-accept-btn-handler").click()
+    moj_olx_button_url = mainBrowser.find_element(By.XPATH, "//*[@data-cy='myolx-link']").get_attribute('href')
     print("Logging using predefined login and password")
     mainBrowser.get(moj_olx_button_url)
-    mainBrowser.find_element_by_xpath("//*[@id=\"userEmail\"]").send_keys(login)
-    mainBrowser.find_element_by_xpath("//*[@id=\"userPass\"]").send_keys(password)
-    mainBrowser.find_element_by_xpath("//*[@id=\"se_userLogin\"]").click()
+    mainBrowser.find_element(By.NAME, "username").send_keys(login)
+    mainBrowser.find_element(By.NAME, "password").send_keys(password)
+    mainBrowser.find_element(By.XPATH, "//*[@data-testid='login-submit-button']").click()
+
+    # mainBrowser.find_element(By.XPATH,"//*[@id=\"userEmail\"]").send_keys(login)
+    # mainBrowser.find_element(By.XPATH,"//*[@id=\"userPass\"]").send_keys(password)
+    # mainBrowser.find_element(By.XPATH,"//*[@id=\"se_userLogin\"]").click()
+    
     i = 0
-    while mainBrowser.current_url != "https://www.olx.pl/mojolx/#login":
+    while mainBrowser.current_url != "https://www.olx.pl/":
         i = i + 1
         time.sleep(1)
         print(".")
