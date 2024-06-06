@@ -8,14 +8,13 @@ from undetected_chromedriver import Chrome, ChromeOptions
 import time
 import os.path
 import readchar
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 # CONFIG HERE
 # searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
-searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/?search%5Bfilter_enum_type%5D%5B0%5D=parttime&search%5Bfilter_enum_experience%5D%5B0%5D=exp_no&search%5Bfilter_enum_special_requirements%5D%5B0%5D=student_status&search%5Bfilter_enum_agreement%5D%5B0%5D=zlecenie"
-
-# login = "dc_test_1@op.pl"
-# password = "DeliveryCouple123"
-firstName = "Paweł"
+# searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/?search%5Bfilter_enum_type%5D%5B0%5D=parttime&search%5Bfilter_enum_experience%5D%5B0%5D=exp_no&search%5Bfilter_enum_special_requirements%5D%5B0%5D=student_status&search%5Bfilter_enum_agreement%5D%5B0%5D=zlecenie"
+searching_url = "https://www.olx.pl/praca/inne-oferty-pracy/"
 
 mainBrowser = Chrome()
 
@@ -47,28 +46,129 @@ mainBrowser = Chrome()
 #     mainBrowser.close()
 #     mainBrowser.switch_to.window(main_window)
 
-def sendJobApplication(offer_url):
-    print("Message is sending!")
 
-    main_window = mainBrowser.current_window_handle
+def readJobApplicationData():
+    try:
+        tree = ET.parse('job_application_data.xml')
+    except:
+        print("ERROR: File 'job_application_data.xml' not found")
+        return False
+    root = tree.getroot()
+    name = ""
+    surname = ""
+    phone = ""
+    cv_file_path = ""
+    message = ""
+    for child in root:
+        if child.tag == 'name':
+            name = child.text
+        elif child.tag == 'surname':
+            surname = child.text
+        elif child.tag == 'phone':
+            phone = child.text
+        elif child.tag == 'cv_file_path':
+            cv_file_path = child.text
+        elif child.tag == 'message':
+            message = child.text
+        elif child.tag == 'expected_salary':
+            expected_salary = child.text
+    print(f"Name: {name}")
+    print(f"Surname: {surname}")
+    print(f"Phone: {phone}")
+    print(f"CV File Path: {cv_file_path}")
+    print(f"Message: {message}")
+    jobApplicationData = [name, surname, phone,
+                          cv_file_path, message, expected_salary]
+
+    return jobApplicationData
+
+
+def sendJobApplication(offer_url):
+    jobApplicationData = readJobApplicationData()
+    if jobApplicationData is False:
+        return False
     mainBrowser.execute_script("window.open();")
     mainBrowser.switch_to.window(mainBrowser.window_handles[0])
     mainBrowser.get(offer_url)
-    application_url = mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").get_attribute('href')
-    mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
-    # mainBrowser.get(application_url)
-    time.sleep(2)
+    try:
+        # Press "Aplikuj"
+        mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
+        # mainBrowser.get(application_url)
+        time.sleep(2)
 
-    firstName_text_field = mainBrowser.find_element(By.NAME, "firstName")
-    firstName_text_field.send_keys(firstName)
+        firstName_text_field = mainBrowser.find_element(By.NAME, "firstName")
+        firstName_text_field.send_keys(jobApplicationData[0])
+        lastName_text_field = mainBrowser.find_element(By.NAME, "lastName")
+        lastName_text_field.send_keys(jobApplicationData[1])
+        phoneNumber_text_field = mainBrowser.find_element(
+            By.NAME, "phoneNumber")
+        phoneNumber_text_field.send_keys(jobApplicationData[2])
+        # try:
+        #     mainBrowser.find_element(
+        #         By.XPATH, "//*[@data-testid=\"attach-cv\"]").click()
+        #     fileInput = mainBrowser.find_element(
+        #         By.CSS_SELECTOR, "input[data-testid='applyform-cv-upload-input']")
+        #     fileInput.send_keys(jobApplicationData[3])
+        # except:
+        #     print("ERROR: CV already submitted for this offer")
+        #     return
+        message_text_field = mainBrowser.find_element(By.NAME, "message")
+        message_text_field.clear()
+        message_text_field.send_keys(jobApplicationData[4])
+        time.sleep(2)
+        # Click "Aplikuj" second time
+        mainBrowser.find_element(By.CLASS_NAME, "css-g8papo").click()
+        time.sleep(4)
+        job_start_time_radio_button = mainBrowser.find_element(
+            By.XPATH, "//input[@type='radio' and @value='now']")
+        job_start_time_radio_button.click()
+        time.sleep(2)
+        experience_radio_button = mainBrowser.find_element(
+            By.XPATH, "//input[@type='radio' and @value='yes_over_year']")
+        experience_radio_button.click()
+        time.sleep(2)
+        expected_salary_text_field = mainBrowser.find_element(
+            By.NAME, "5b37098a-a46b-4893-a687-2ec7a31e27d3")
+        expected_salary_text_field.send_keys(jobApplicationData[5])
+        # Click "Wyślij odpowiedzi"
+        time.sleep(2)
+        mainBrowser.find_element(By.CLASS_NAME, "css-dekqtb").click()
+        # Click "Kontynuuj wyszukiwanie"
+        time.sleep(2)
+        mainBrowser.find_element(By.CLASS_NAME, "css-17rpsjk").click()
+        print("Application sent!")
+        return True
+    except:
+        addToXML(offer_url, "failed_attempts.xml", "url")
+        print("Application for a job failed, url saved in 'failed_attempts.xml' file")
 
-    mainBrowser.find_element(By.XPATH, "//*[@data-testid=\"attach-cv\"]").click()
-    fileInput = mainBrowser.find_element(By.CSS_SELECTOR, "input[data-testid='applyform-cv-upload-input']")
-    fileInput.send_keys("/home/koczka/Documents/Abstract.pdf")
+    return False
 
-    time.sleep(5)
-    mainBrowser.close()
-    mainBrowser.switch_to.window(main_window)
+
+def addToXML(offer_url, file_name, class_name):
+    if os.path.exists(file_name):
+        tree = ET.parse(file_name)
+        root = tree.getroot()
+    else:
+        root = ET.Element(file_name)
+        tree = ET.ElementTree(root)
+    url_element = ET.Element(class_name)
+    url_element.text = offer_url
+    root = tree.getroot()
+    root.append(url_element)
+
+    tree.write(file_name, encoding='utf-8', xml_declaration=True)
+
+    # Pretty print the XML
+    with open(file_name, "w", encoding='utf-8') as f:
+        f.write(prettifyXML(root))
+
+
+def prettifyXML(elem):
+    """Return a pretty-printed XML string for the Element."""
+    rough_string = ET.tostring(elem, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 
 
 def getNextPageUrl(is_authenticated):
@@ -76,8 +176,9 @@ def getNextPageUrl(is_authenticated):
     try:
         # next_button_url = mainBrowser.find_element(By.XPATH,
         #     "//*[@id=\"body-container\"]/div[3]/div/div[8]/span[9]/a").get_attribute('href')
-        next_button_url = mainBrowser.find_element(By.XPATH, "//*[@data-testid='pagination-forward']").get_attribute('href')
-       
+        next_button_url = mainBrowser.find_element(
+            By.XPATH, "//*[@data-testid='pagination-forward']").get_attribute('href')
+
         print(next_button_url)
         return next_button_url
     except NoSuchElementException as exception:
@@ -90,7 +191,8 @@ def additionalOfferInfo(offer_url):
     print("------------------------------")
     additional_browser = Chrome()
     additional_browser.get(offer_url)
-    offer_description = additional_browser.find_element(By.XPATH,"//*[@id=\"textContent\"]").text
+    offer_description = additional_browser.find_element(
+        By.XPATH, "//*[@id=\"textContent\"]").text
     additional_browser.close()
     return offer_description
 
@@ -165,47 +267,55 @@ def getListOffers(is_authenticated, mode):
     for offerName in array_offer_names:
         print("------------------------------")
         # if checkIfFileContainsString(offerName.get_attribute('href')):
-        #     print("One offer has been skipped!")    
+        #     print("One offer has been skipped!")
         # else:
         print(offerName.text)
         # print(offerPrice.text)
         if mode != "skipAsk":
-            askUserDoesHeWant(offerName.get_attribute("href"), is_authenticated)
+            askUserDoesHeWant(offerName.get_attribute(
+                "href"), is_authenticated)
     mainBrowser.get(getNextPageUrl(is_authenticated))
     getListOffers(is_authenticated, mode)
 
+
 def readAccountData():
-    with open('account_data.txt', 'r') as file:
-        for line in file:
-            line = line.strip()
-            key, value = line.split(': ')
-            if key == "login":
-                login = value
-            elif key == "password":
-                password = value
+    try:
+        tree = ET.parse('account_data.xml')
+    except:
+        print("ERROR: File 'account_data.xml' not found")
+        return False
+    root = tree.getroot()
+    login = ""
+    password = ""
+    for child in root:
+        if child.tag == 'login':
+            login = child.text
+        elif child.tag == 'password':
+            password = child.text
     print(f"Login: {login}")
     print(f"Password: {password}")
-    accountData = [login,password]
+    accountData = [login, password]
 
     return accountData
 
+
 def doAuth():
     print("Attempting to log in")
-    try:
-        accountData = readAccountData()
-    except:
-        print("ERROR: Cannot find account_data.txt file")
+    accountData = readAccountData()
+    if accountData is False:
         return
     mainBrowser.get("https://www.olx.pl/")
     time.sleep(3)
     mainBrowser.find_element(By.ID, "onetrust-accept-btn-handler").click()
-    moj_olx_button_url = mainBrowser.find_element(By.XPATH, "//*[@data-cy='myolx-link']").get_attribute('href')
+    moj_olx_button_url = mainBrowser.find_element(
+        By.XPATH, "//*[@data-cy='myolx-link']").get_attribute('href')
     print("Logging using predefined login and password")
     mainBrowser.get(moj_olx_button_url)
     mainBrowser.find_element(By.NAME, "username").send_keys(accountData[0])
     mainBrowser.find_element(By.NAME, "password").send_keys(accountData[1])
-    mainBrowser.find_element(By.XPATH, "//*[@data-testid='login-submit-button']").click()
-    
+    mainBrowser.find_element(
+        By.XPATH, "//*[@data-testid='login-submit-button']").click()
+
     i = 0
     while mainBrowser.current_url != "https://www.olx.pl/":
         i = i + 1
