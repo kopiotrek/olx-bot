@@ -3,6 +3,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from undetected_chromedriver import Chrome, ChromeOptions
 import time
@@ -17,6 +19,7 @@ from xml.dom import minidom
 searching_url = "https://www.olx.pl/praca/inne-oferty-pracy/"
 
 mainBrowser = Chrome()
+
 
 class OlxBot:
     def __init__(self):
@@ -48,7 +51,6 @@ class OlxBot:
     #     time.sleep(5)
     #     mainBrowser.close()
     #     mainBrowser.switch_to.window(main_window)
-
 
     def readJobApplicationData(self):
         try:
@@ -85,13 +87,12 @@ class OlxBot:
 
         return jobApplicationData
 
-
-    def sendJobApplication(self,offer_url):
+    def sendJobApplication(self, offer_url):
         jobApplicationData = self.readJobApplicationData()
         if jobApplicationData is False:
             return False
-        mainBrowser.execute_script("window.open();")
-        mainBrowser.switch_to.window(mainBrowser.window_handles[0])
+        # mainBrowser.execute_script("window.open();")
+        # mainBrowser.switch_to.window(mainBrowser.window_handles[0])
         mainBrowser.get(offer_url)
         try:
             # Press "Aplikuj"
@@ -99,7 +100,8 @@ class OlxBot:
             # mainBrowser.get(application_url)
             time.sleep(2)
 
-            firstName_text_field = mainBrowser.find_element(By.NAME, "firstName")
+            firstName_text_field = mainBrowser.find_element(
+                By.NAME, "firstName")
             firstName_text_field.send_keys(jobApplicationData[0])
             lastName_text_field = mainBrowser.find_element(By.NAME, "lastName")
             lastName_text_field.send_keys(jobApplicationData[1])
@@ -134,12 +136,18 @@ class OlxBot:
                 By.NAME, "5b37098a-a46b-4893-a687-2ec7a31e27d3")
             expected_salary_text_field.send_keys(jobApplicationData[5])
             # Click "Wyślij odpowiedzi"
-            time.sleep(2)
+            time.sleep(5)
             mainBrowser.find_element(By.CLASS_NAME, "css-dekqtb").click()
             # Click "Kontynuuj wyszukiwanie"
-            time.sleep(2)
-            mainBrowser.find_element(By.CLASS_NAME, "css-17rpsjk").click()
+            time.sleep(5)
+            # mainBrowser.find_element(By.CLASS_NAME, "css-17rpsjk").click()
+            
+                    # Click "Kontynuuj wyszukiwanie"
+            WebDriverWait(mainBrowser, 10).until(
+                EC.element_to_be_clickable((By.CLASS_NAME, "css-17rpsjk"))
+            ).click()
             print("Application sent!")
+
             return True
         except:
             self.addToXML(offer_url, "failed_attempts.xml", "url")
@@ -147,8 +155,7 @@ class OlxBot:
 
         return False
 
-
-    def addToXML(self,offer_url, file_name, class_name):
+    def addToXML(self, offer_url, file_name, class_name):
         if os.path.exists(file_name):
             tree = ET.parse(file_name)
             root = tree.getroot()
@@ -166,40 +173,25 @@ class OlxBot:
         with open(file_name, "w", encoding='utf-8') as f:
             f.write(self.prettifyXML(root))
 
-
     def prettifyXML(elem):
         """Return a pretty-printed XML string for the Element."""
         rough_string = ET.tostring(elem, 'utf-8')
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
 
-
     def getNextPageUrl(self):
         print("Changing to next page")
         try:
             next_button_url = mainBrowser.find_element(
                 By.XPATH, "//*[@data-testid='pagination-forward']").get_attribute('href')
-
             print(next_button_url)
             return next_button_url
         except NoSuchElementException as exception:
             print("Its last page!")
             self.mainTab()
 
-
-    def additionalOfferInfo(offer_url):
-        print("Printing description of a offer")
-        print("------------------------------")
-        additional_browser = Chrome()
-        additional_browser.get(offer_url)
-        offer_description = additional_browser.find_element(
-            By.XPATH, "//*[@id=\"textContent\"]").text
-        additional_browser.close()
-        return offer_description
-
-
-    def askUserDoesHeWant(self,offer_url):
-        print("If you want it, press Y, else N. For offer description I. For link L. To open it in your browser press O")
+    def askUserDoesHeWant(self, offer_url):
+        print("If you want it, press Y, else N")
         user_key = readchar.readkey()
         if user_key == "y" or user_key == 'Y':
             if self.is_authenticated == 'Not logged in':
@@ -208,39 +200,26 @@ class OlxBot:
                 user_key = readchar.readkey()
                 if user_key == "B" or "b":
                     self.mainTab()
-                self.askUserDoesHeWant(offer_url, self.is_authenticated)
+                self.askUserDoesHeWant(offer_url)
             else:
                 print("Input: Yes")
                 offer_database = open("offerDatabase.txt", "a")
                 offer_database.write(offer_url)
                 offer_database.close()
                 self.sendJobApplication(offer_url)
+                time.sleep(5)
+                # AFTER THIS MOMENT COMES AN EXCEPTION
         elif user_key == 'n' or user_key == 'N':
             print("Input: No")
             offer_database = open("offerDatabase.txt", "a")
             offer_database.write(offer_url)
             offer_database.close()
-        elif user_key == 'i' or user_key == 'I':
-            print("------------------------------")
-            print(self.additionalOfferInfo(offer_url))
-            self.askUserDoesHeWant(offer_url, self.is_authenticated)
-        elif user_key == 'l' or user_key == 'L':
-            print(offer_url)
-            self.askUserDoesHeWant(offer_url, self.is_authenticated)
-        elif user_key == "o" or user_key == "O":
-            additional_browser = Chrome()
-            additional_browser.get(offer_url)
-            print("Press enter when you're done")
-            input()
-            additional_browser.close()
-            self.askUserDoesHeWant(offer_url, self.is_authenticated)
         elif user_key == readchar.key.CTRL_C:
             print("Bye")
             mainBrowser.exit()
             exit()
         else:
-            self.askUserDoesHeWant(offer_url, self.is_authenticated)
-
+            self.askUserDoesHeWant(offer_url)
 
     def checkIfFileContainsString(string_to_search):
         offer_database = open("offerDatabase.txt", "r")
@@ -249,12 +228,13 @@ class OlxBot:
                 offer_database.close()
                 return True
 
-
     def getListOffers(self, mode):
-        if self.is_authenticated == 'Not logged in':
-            print("NOT LOGGED IN, you can't send messages to sellers")
+        if self.is_authenticated is False:
+            print("ERROR: You're not logged in")
+            return False
         print("Getting list of offers")
-        array_offer_names = mainBrowser.find_elements(By.CLASS_NAME, "css-13gxtrp")
+        array_offer_names = mainBrowser.find_elements(
+            By.CLASS_NAME, "css-13gxtrp")
 
         for offerName in array_offer_names:
             print("------------------------------")
@@ -265,10 +245,9 @@ class OlxBot:
             # print(offerPrice.text)
             if mode != "skipAsk":
                 self.askUserDoesHeWant(offerName.get_attribute(
-                    "href"), self.is_authenticated)
-        mainBrowser.get(self.getNextPageUrl(self.is_authenticated))
-        self.getListOffers(self.is_authenticated, mode)
-
+                    "href"))
+        mainBrowser.get(self.getNextPageUrl())
+        self.getListOffers(mode)
 
     def readAccountData(self):
         try:
@@ -289,7 +268,6 @@ class OlxBot:
         accountData = [login, password]
 
         return accountData
-
 
     def doAuth(self):
         print("Attempting to log in")
@@ -314,12 +292,12 @@ class OlxBot:
             time.sleep(1)
             print(".")
             if i > 15:
-                print("Logging in is taking so much time, please fix your password in config")
+                print(
+                    "Logging in is taking so much time, please fix your password in config")
                 exit()
         print("Logged in!")
         print("------------------------------")
         self.is_authenticated = True
-
 
     def settingsTab(self):
         print("Settings tab here")
@@ -338,8 +316,8 @@ class OlxBot:
         elif user_key == '4':
             self.mainTab()
 
-
     def mainTab(self):
+        self.doAuth()
         if os.path.isfile("offerDatabase.txt") == 0:
             print("offerDatabase.txt doesn't exist. Creating it")
             offer_database = open("offerDatabase.txt", "w")
@@ -350,23 +328,20 @@ class OlxBot:
             print("Its used to manage OLX.pl and make your life easier :)")
             print("------------------------------")
             print("What would you like to do today?")
-        # print("1. Auth me on OLX. NEEDED TO SEND MESSAGES! Currently: " + self.is_authenticated)
-        print("2. Search for new offers")
-        print("3. Search for new offers - no user input")
-        print("4. Settings")
-        self.doAuth()
+        print("1. Search for new offers")
+        print("2. Search for new offers - no user input")
+        print("3. Settings")
         user_key = readchar.readkey()
         if user_key == '1':
-            # doAuth()
-            print("Log in is automatic")
+            mainBrowser.get(searching_url)
+            if (self.getListOffers('nocriteria') is False):
+                print("ERROR: getListOffers returned False")
         elif user_key == '2':
             mainBrowser.get(searching_url)
-            self.getListOffers(self.is_authenticated, 'nocriteria')
+            if (self.getListOffers('skipAsk') is False):
+                print("ERROR: getListOffers returned False")
         elif user_key == '3':
-            mainBrowser.get(searching_url)
-            self.getListOffers(self.is_authenticated, 'skipAsk')
-        elif user_key == '4':
-            self.settingsTab(self.is_authenticated)
+            self.settingsTab()
         elif user_key == readchar.key.CTRL_C:
             print("Bye")
             exit()
