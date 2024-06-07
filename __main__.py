@@ -96,7 +96,21 @@ class OlxBot:
         mainBrowser.get(offer_url)
         try:
             # Press "Aplikuj"
-            mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
+
+            application_url = mainBrowser.find_element(
+                By.CLASS_NAME, "css-ezafkw").get_attribute('href')
+
+            olx_application_url = "/oferta/praca/aplikuj/"
+
+            if olx_application_url.lower() in application_url.lower():
+                mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
+            else:
+                print(
+                    "ERROR: Application conducted via external website, url saved in 'failed_attempts.xml' file")
+                self.addToXML(application_url,
+                              "failed_attempts.xml", "ext_application"),
+                return False
+
             # mainBrowser.get(application_url)
             time.sleep(2)
 
@@ -127,59 +141,54 @@ class OlxBot:
             job_start_time_radio_button = mainBrowser.find_element(
                 By.XPATH, "//input[@type='radio' and @value='now']")
             job_start_time_radio_button.click()
-            time.sleep(2)
             experience_radio_button = mainBrowser.find_element(
                 By.XPATH, "//input[@type='radio' and @value='yes_over_year']")
             experience_radio_button.click()
-            time.sleep(2)
             expected_salary_text_field = mainBrowser.find_element(
                 By.NAME, "5b37098a-a46b-4893-a687-2ec7a31e27d3")
             expected_salary_text_field.send_keys(jobApplicationData[5])
             # Click "Wyślij odpowiedzi"
-            time.sleep(5)
             mainBrowser.find_element(By.CLASS_NAME, "css-dekqtb").click()
-            # Click "Kontynuuj wyszukiwanie"
-            time.sleep(5)
-            # mainBrowser.find_element(By.CLASS_NAME, "css-17rpsjk").click()
-            
-                    # Click "Kontynuuj wyszukiwanie"
-            WebDriverWait(mainBrowser, 10).until(
-                EC.element_to_be_clickable((By.CLASS_NAME, "css-17rpsjk"))
-            ).click()
+            self.addToXML(offer_url, "sent_applications.xml", "url")
             print("Application sent!")
 
             return True
         except:
-            self.addToXML(offer_url, "failed_attempts.xml", "url")
+            self.addToXML(offer_url, "failed_attempts.xml", "error_url")
             print("Application for a job failed, url saved in 'failed_attempts.xml' file")
 
-        return False
+            return False
 
     def addToXML(self, offer_url, file_name, class_name):
         if os.path.exists(file_name):
             tree = ET.parse(file_name)
             root = tree.getroot()
         else:
-            root = ET.Element(file_name)
+            root = ET.Element('root')
             tree = ET.ElementTree(root)
+
+        # Create a new element with the given class name and set its text to the offer URL
         url_element = ET.Element(class_name)
         url_element.text = offer_url
-        root = tree.getroot()
+
+        # Append the new element to the root element
         root.append(url_element)
 
+        # Write the tree back to the file with UTF-8 encoding and XML declaration
         tree.write(file_name, encoding='utf-8', xml_declaration=True)
 
-        # Pretty print the XML
-        with open(file_name, "w", encoding='utf-8') as f:
-            f.write(self.prettifyXML(root))
+    def isInXML(self, offer_url, file_name, class_name):
+        if not os.path.exists(file_name):
+            return False
+        tree = ET.parse(file_name)
+        root = tree.getroot()
+        for elem in root.findall(class_name):
+            if elem.text == offer_url:
+                return True
 
-    def prettifyXML(elem):
-        """Return a pretty-printed XML string for the Element."""
-        rough_string = ET.tostring(elem, 'utf-8')
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
+        return False
 
-    def getNextPageUrl(self):
+    def getNextPageURL(self):
         print("Changing to next page")
         try:
             next_button_url = mainBrowser.find_element(
@@ -207,8 +216,6 @@ class OlxBot:
                 offer_database.write(offer_url)
                 offer_database.close()
                 self.sendJobApplication(offer_url)
-                time.sleep(5)
-                # AFTER THIS MOMENT COMES AN EXCEPTION
         elif user_key == 'n' or user_key == 'N':
             print("Input: No")
             offer_database = open("offerDatabase.txt", "a")
@@ -221,32 +228,28 @@ class OlxBot:
         else:
             self.askUserDoesHeWant(offer_url)
 
-    def checkIfFileContainsString(string_to_search):
-        offer_database = open("offerDatabase.txt", "r")
-        for line in offer_database:
-            if string_to_search in line:
-                offer_database.close()
-                return True
-
     def getListOffers(self, mode):
         if self.is_authenticated is False:
             print("ERROR: You're not logged in")
             return False
         print("Getting list of offers")
+        nextPageURL = self.getNextPageURL()
         array_offer_names = mainBrowser.find_elements(
             By.CLASS_NAME, "css-13gxtrp")
-
+        array_offer_urls = []
         for offerName in array_offer_names:
-            print("------------------------------")
-            # if checkIfFileContainsString(offerName.get_attribute('href')):
-            #     print("One offer has been skipped!")
-            # else:
-            print(offerName.text)
-            # print(offerPrice.text)
-            if mode != "skipAsk":
-                self.askUserDoesHeWant(offerName.get_attribute(
-                    "href"))
-        mainBrowser.get(self.getNextPageUrl())
+            newOfferURL = offerName.get_attribute('href')
+            if self.isInXML(newOfferURL, "sent_applications.xml", "url"):
+                print("Skipped - already applied!")
+            else:
+                print(offerName.text)
+                array_offer_urls.append(newOfferURL)
+        try:
+            for offerURL in array_offer_urls:
+                self.sendJobApplication(offerURL)
+        except:
+            print("ERROR: Offers list has changed while applying for another.")
+        mainBrowser.get(nextPageURL)
         self.getListOffers(mode)
 
     def readAccountData(self):
