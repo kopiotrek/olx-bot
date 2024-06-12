@@ -1,4 +1,4 @@
 account_data.xml
 job_application_data.xml
 *.pdf
-/__pycache__
+# /__pycache__
