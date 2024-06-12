@@ -6,10 +6,7 @@ from undetected_chromedriver import Chrome
 from termcolor import colored
 import time
 import os.path
-import readchar
 import xml.etree.ElementTree as ET
-
-searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/q-jedzenia/"
 
 mainBrowser = Chrome()
 
@@ -55,10 +52,8 @@ class OlxBot:
         print(f"Email: {email}")
         print(f"CV File Path: {cv_file_path}")
         print(f"Message: {message}")
-        jobApplicationData = [search_url, name, surname, phone, email,
-                              cv_file_path, message, expected_salary]
-
-        return jobApplicationData
+        self.jobApplicationData = [search_url, name, surname, phone, email,
+                                   cv_file_path, message, expected_salary]
 
     def sendJobApplication(self, offer_url):
 
@@ -170,7 +165,7 @@ class OlxBot:
         print("------------------------------")
         print("Getting list of offers")
         print("------------------------------")
-        
+
         array_offer_names = self.wait.until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "css-13gxtrp")))
         array_offer_urls = []
@@ -248,13 +243,13 @@ class OlxBot:
         print(colored("Starting OLX-BOT", 'green'))
         print(colored("------------------------------", 'green'))
         self.doAuth()
-        self.jobApplicationData = self.readJobApplicationData()
+        self.readJobApplicationData()
         if self.jobApplicationData is False:
             print(
                 colored("ERROR: Failed to read data from job_application_data.xml file", 'red'))
             return False
         if self.is_authenticated is True:
-            mainBrowser.get(searching_url)
+            mainBrowser.get(self.jobApplicationData[0])
             if (self.getListOffers('nocriteria') is False):
                 print("Shutdown")
 
