@@ -1,15 +1,19 @@
-How to run the olx-bot:
+# How to run the OLX Bot:
 
-1. Prepare the necessary xml files:
+## 1. Prepare the necessary XML files:
 
-account_data.xml
+### account_data.xml
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <account_data>
     <login>YOUR_LOGIN</login>
     <password>YOUR_PASSWORD</password>
 </account_data>
+```
 
-job_appliacation_data.xml
+
+### job_application_data.xml
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <job_application>
     <search_url>URL</search_url>
@@ -21,5 +25,10 @@ job_appliacation_data.xml
     <message>MESSAGE_TEXT</message>
     <expected_salary>SALARY</expected_salary>
 </job_application>
+```
+NOTE fields: name, surname, phone, email and cv_file_path are not in use, 
+because OLX allows for saving the candidate profile and this data doesn'e 
+need to be entered every time 
 
-2. Run the main.py script
+
+## 2. Run the main.py script
