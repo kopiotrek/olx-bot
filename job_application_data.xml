@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <job_application>
-    <name>test</name>
-    <surname>testowy</surname>
-    <phone>+48123456789</phone>
-    <cv_file_path>/home/koczka/Documents/DeliveryCouple/olx-bot/cv.pdf</cv_file_path>
-    <message>Przepraszam za zawracanie głowy - testuję zabezpieczenia witryny OLX</message>
-    <expected_salary>1</expected_salary>
+    <name>Sergiusz</name>
+    <surname>Lebedyn</surname>
+    <phone>+48459568620</phone>
+    <email>sl@deliverycouple.com</email>
+    <cv_file_path>/home/koczka/Documents/DeliveryCouple/olx-bot/CV_Mateusz_Delivery_Couple.pdf</cv_file_path>
+    <message>Jestem pierwszym w Polsce robotem kurierem, jestem bardzo punktualny i niezawodny, na ulicach przyciągam więcej uwagi niż super samochody i piękne kobiety. Chętnie zajmę się dostawami i reklamą Twojej restauracji.</message>
+    <expected_salary>30</expected_salary>
 </job_application>

@@ -16,7 +16,7 @@ from xml.dom import minidom
 # CONFIG HERE
 # searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
 # searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/?search%5Bfilter_enum_type%5D%5B0%5D=parttime&search%5Bfilter_enum_experience%5D%5B0%5D=exp_no&search%5Bfilter_enum_special_requirements%5D%5B0%5D=student_status&search%5Bfilter_enum_agreement%5D%5B0%5D=zlecenie"
-searching_url = "https://www.olx.pl/praca/inne-oferty-pracy/"
+searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/q-jedzenia/"
 
 mainBrowser = Chrome()
 
@@ -71,6 +71,8 @@ class OlxBot:
                 surname = child.text
             elif child.tag == 'phone':
                 phone = child.text
+            elif child.tag == 'email':
+                email = child.text
             elif child.tag == 'cv_file_path':
                 cv_file_path = child.text
             elif child.tag == 'message':
@@ -80,9 +82,10 @@ class OlxBot:
         print(f"Name: {name}")
         print(f"Surname: {surname}")
         print(f"Phone: {phone}")
+        print(f"Email: {email}")
         print(f"CV File Path: {cv_file_path}")
         print(f"Message: {message}")
-        jobApplicationData = [name, surname, phone,
+        jobApplicationData = [name, surname, phone, email,
                               cv_file_path, message, expected_salary]
 
         return jobApplicationData
@@ -114,14 +117,17 @@ class OlxBot:
             # mainBrowser.get(application_url)
             time.sleep(2)
 
-            firstName_text_field = mainBrowser.find_element(
-                By.NAME, "firstName")
-            firstName_text_field.send_keys(jobApplicationData[0])
-            lastName_text_field = mainBrowser.find_element(By.NAME, "lastName")
-            lastName_text_field.send_keys(jobApplicationData[1])
-            phoneNumber_text_field = mainBrowser.find_element(
-                By.NAME, "phoneNumber")
-            phoneNumber_text_field.send_keys(jobApplicationData[2])
+            # firstName_text_field = mainBrowser.find_element(
+            #     By.NAME, "firstName")
+            # firstName_text_field.send_keys(jobApplicationData[0])
+            # lastName_text_field = mainBrowser.find_element(By.NAME, "lastName")
+            # lastName_text_field.send_keys(jobApplicationData[1])
+            # phoneNumber_text_field = mainBrowser.find_element(
+            #     By.NAME, "phoneNumber")
+            # phoneNumber_text_field.send_keys(jobApplicationData[2])
+            # email_text_field = mainBrowser.find_element(
+            #     By.NAME, "emailAddress")
+            # email_text_field.send_keys(jobApplicationData[3])
             # try:
             #     mainBrowser.find_element(
             #         By.XPATH, "//*[@data-testid=\"attach-cv\"]").click()
@@ -133,20 +139,20 @@ class OlxBot:
             #     return
             message_text_field = mainBrowser.find_element(By.NAME, "message")
             message_text_field.clear()
-            message_text_field.send_keys(jobApplicationData[4])
+            message_text_field.send_keys(jobApplicationData[5])
             time.sleep(2)
             # Click "Aplikuj" second time
             mainBrowser.find_element(By.CLASS_NAME, "css-g8papo").click()
             time.sleep(4)
             job_start_time_radio_button = mainBrowser.find_element(
-                By.XPATH, "//input[@type='radio' and @value='now']")
+                By.XPATH, "//input[@type='radio' and @value='within_month']")
             job_start_time_radio_button.click()
             experience_radio_button = mainBrowser.find_element(
                 By.XPATH, "//input[@type='radio' and @value='yes_over_year']")
             experience_radio_button.click()
             expected_salary_text_field = mainBrowser.find_element(
                 By.NAME, "5b37098a-a46b-4893-a687-2ec7a31e27d3")
-            expected_salary_text_field.send_keys(jobApplicationData[5])
+            expected_salary_text_field.send_keys(jobApplicationData[6])
             # Click "Wyślij odpowiedzi"
             mainBrowser.find_element(By.CLASS_NAME, "css-dekqtb").click()
             self.addToXML(offer_url, "sent_applications.xml", "url")
