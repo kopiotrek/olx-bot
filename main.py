@@ -70,7 +70,7 @@ class OlxBot:
             else:
                 print(colored(
                     "ERROR: Application conducted via external website, url saved in 'failed_attempts.xml' file", 'red'))
-                self.addToXML(application_url,
+                self.addToXML(offer_url,
                               "failed_attempts.xml", "ext_application"),
                 return False
 
@@ -149,6 +149,25 @@ class OlxBot:
 
         return False
 
+    # def isInXML(offer_url, file_name, class_name):
+    #     if not os.path.exists(file_name):
+    #         return False
+        
+    #     tree = ET.parse(file_name)
+    #     root = tree.getroot()
+        
+    #     def search_element(element):
+    #         # Check if the current element matches the class name and contains the offer URL
+    #         if element.tag == class_name and element.text == offer_url:
+    #             return True
+    #         # Recursively search within all child elements
+    #         for child in element:
+    #             if search_element(child):
+    #                 return True
+    #         return False
+        
+    #     return search_element(root)
+
     def getNextPageURL(self):
         try:
             next_button_url = mainBrowser.find_element(
@@ -175,6 +194,9 @@ class OlxBot:
             if self.isInXML(newOfferURL, "sent_applications.xml", "url"):
                 print(
                     colored(f"{offerName.text} - skipped, already applied!", 'yellow'))
+            elif self.isInXML(newOfferURL, "failed_attempts.xml", "ext_application"):
+                print(
+                    colored(f"{offerName.text} - skipped, known as exterior application website", 'yellow'))
             else:
                 print(offerName.text)
                 array_offer_urls.append(newOfferURL)

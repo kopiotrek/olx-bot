@@ -27,7 +27,7 @@
 </job_application>
 ```
 NOTE fields: name, surname, phone, email and cv_file_path are not in use, 
-because OLX allows for saving the candidate profile and this data doesn'e 
+because OLX allows for saving the candidate profile and this data doesn't
 need to be entered every time 
 
 
