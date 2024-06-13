@@ -1,22 +1,12 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from undetected_chromedriver import Chrome, ChromeOptions
+from undetected_chromedriver import Chrome
+from termcolor import colored
 import time
 import os.path
-import readchar
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
-
-# CONFIG HERE
-# searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/"
-# searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/?search%5Bfilter_enum_type%5D%5B0%5D=parttime&search%5Bfilter_enum_experience%5D%5B0%5D=exp_no&search%5Bfilter_enum_special_requirements%5D%5B0%5D=student_status&search%5Bfilter_enum_agreement%5D%5B0%5D=zlecenie"
-searching_url = "https://www.olx.pl/praca/dostawca-kurier-miejski/q-jedzenia/"
 
 mainBrowser = Chrome()
 
@@ -24,39 +14,13 @@ mainBrowser = Chrome()
 class OlxBot:
     def __init__(self):
         self.is_authenticated = False
-
-    # def sendMessage(offer_url):
-    #     print("Message is sending!")
-    #     main_window = mainBrowser.current_window_handle
-    #     mainBrowser.execute_script("window.open();")
-    #     print("Window handles length:", len(mainBrowser.window_handles))
-    #     mainBrowser.switch_to.window(mainBrowser.window_handles[0])
-    #     mainBrowser.get(offer_url)
-    #     message_url = mainBrowser.find_element(By.XPATH,"//*[@id=\"contact_methods\"]/li[1]/a").get_attribute('href')
-    #     mainBrowser.get(message_url)
-    #     message_text_area = mainBrowser.find_element(By.XPATH,"//*[@id=\"ask-text\"]")
-    #     message_text_area.send_keys(messageString)
-    #     print("Your action needed!")
-    #     print("Please tell us if the captcha exists, Write yes or no and press enter")
-    #     user_key_1 = readchar.readkey()
-    #     if user_key_1 == 'y' or user_key_1 == 'Y':
-    #         print("Please solve captcha and press enter!")
-    #         input()
-    #         submit_button = mainBrowser.find_element(By.XPATH,
-    #             "//*[@id=\"contact-form\"]/fieldset/div[4]/div/span/input")
-    #     elif user_key_1 == 'n' or user_key_1 == 'N':
-    #         submit_button =  mainBrowser.find_element(By.XPATH,
-    #             "//*[@id=\"contact-form\"]/fieldset/div[3]/div/span/input")
-    #     submit_button.click()
-    #     time.sleep(5)
-    #     mainBrowser.close()
-    #     mainBrowser.switch_to.window(main_window)
+        self.wait = WebDriverWait(mainBrowser, 10)  # Wait up to 20 seconds
 
     def readJobApplicationData(self):
         try:
             tree = ET.parse('job_application_data.xml')
         except:
-            print("ERROR: File 'job_application_data.xml' not found")
+            print(colored("ERROR: File 'job_application_data.xml' not found", 'red'))
             return False
         root = tree.getroot()
         name = ""
@@ -65,7 +29,9 @@ class OlxBot:
         cv_file_path = ""
         message = ""
         for child in root:
-            if child.tag == 'name':
+            if child.tag == 'search_url':
+                search_url = child.text
+            elif child.tag == 'name':
                 name = child.text
             elif child.tag == 'surname':
                 surname = child.text
@@ -79,27 +45,21 @@ class OlxBot:
                 message = child.text
             elif child.tag == 'expected_salary':
                 expected_salary = child.text
+        print(f"Search_url: {search_url}")
         print(f"Name: {name}")
         print(f"Surname: {surname}")
         print(f"Phone: {phone}")
         print(f"Email: {email}")
         print(f"CV File Path: {cv_file_path}")
         print(f"Message: {message}")
-        jobApplicationData = [name, surname, phone, email,
-                              cv_file_path, message, expected_salary]
-
-        return jobApplicationData
+        self.jobApplicationData = [search_url, name, surname, phone, email,
+                                   cv_file_path, message, expected_salary]
 
     def sendJobApplication(self, offer_url):
-        jobApplicationData = self.readJobApplicationData()
-        if jobApplicationData is False:
-            return False
-        # mainBrowser.execute_script("window.open();")
-        # mainBrowser.switch_to.window(mainBrowser.window_handles[0])
+
         mainBrowser.get(offer_url)
         try:
             # Press "Aplikuj"
-
             application_url = mainBrowser.find_element(
                 By.CLASS_NAME, "css-ezafkw").get_attribute('href')
 
@@ -108,60 +68,58 @@ class OlxBot:
             if olx_application_url.lower() in application_url.lower():
                 mainBrowser.find_element(By.CLASS_NAME, "css-ezafkw").click()
             else:
-                print(
-                    "ERROR: Application conducted via external website, url saved in 'failed_attempts.xml' file")
-                self.addToXML(application_url,
+                print(colored(
+                    "ERROR: Application conducted via external website, url saved in 'failed_attempts.xml' file", 'red'))
+                self.addToXML(offer_url,
                               "failed_attempts.xml", "ext_application"),
                 return False
 
-            # mainBrowser.get(application_url)
-            time.sleep(2)
+            # time.sleep(2)
+            # Wait until the element is visible
+            try:
+                ok_button = WebDriverWait(mainBrowser, 4).until(EC.presence_of_element_located(
+                (By.CLASS_NAME, "css-tory2h")))
 
-            # firstName_text_field = mainBrowser.find_element(
-            #     By.NAME, "firstName")
-            # firstName_text_field.send_keys(jobApplicationData[0])
-            # lastName_text_field = mainBrowser.find_element(By.NAME, "lastName")
-            # lastName_text_field.send_keys(jobApplicationData[1])
-            # phoneNumber_text_field = mainBrowser.find_element(
-            #     By.NAME, "phoneNumber")
-            # phoneNumber_text_field.send_keys(jobApplicationData[2])
-            # email_text_field = mainBrowser.find_element(
-            #     By.NAME, "emailAddress")
-            # email_text_field.send_keys(jobApplicationData[3])
-            # try:
-            #     mainBrowser.find_element(
-            #         By.XPATH, "//*[@data-testid=\"attach-cv\"]").click()
-            #     fileInput = mainBrowser.find_element(
-            #         By.CSS_SELECTOR, "input[data-testid='applyform-cv-upload-input']")
-            #     fileInput.send_keys(jobApplicationData[3])
-            # except:
-            #     print("ERROR: CV already submitted for this offer")
-            #     return
+                if ok_button.is_displayed():
+                    print(colored("------------------------------", 'red'))
+                    print(colored("Application limit reached.", 'red'))
+                    print(colored("------------------------------", 'red'))
+                    return "SHUTDOWN"
+            except:
+                pass
+
             message_text_field = mainBrowser.find_element(By.NAME, "message")
             message_text_field.clear()
-            message_text_field.send_keys(jobApplicationData[5])
-            time.sleep(2)
+            message_text_field.send_keys(self.jobApplicationData[6])
+            # time.sleep(2)
             # Click "Aplikuj" second time
-            mainBrowser.find_element(By.CLASS_NAME, "css-g8papo").click()
-            time.sleep(4)
-            job_start_time_radio_button = mainBrowser.find_element(
-                By.XPATH, "//input[@type='radio' and @value='within_month']")
+            apply_button = self.wait.until(EC.presence_of_element_located(
+                (By.CLASS_NAME, "css-g8papo")))
+            apply_button.click()
+            # mainBrowser.find_element(By.CLASS_NAME, "css-g8papo").click()
+            # time.sleep(4)
+            job_start_time_radio_button = self.wait.until(EC.presence_of_element_located(
+                (By.XPATH, "//input[@type='radio' and @value='within_month']")))
             job_start_time_radio_button.click()
+            # job_start_time_radio_button = mainBrowser.find_element(
+            #     By.XPATH, "//input[@type='radio' and @value='within_month']")
+            # job_start_time_radio_button.click()
             experience_radio_button = mainBrowser.find_element(
                 By.XPATH, "//input[@type='radio' and @value='yes_over_year']")
             experience_radio_button.click()
             expected_salary_text_field = mainBrowser.find_element(
                 By.NAME, "5b37098a-a46b-4893-a687-2ec7a31e27d3")
-            expected_salary_text_field.send_keys(jobApplicationData[6])
+            expected_salary_text_field.send_keys(self.jobApplicationData[7])
             # Click "Wyślij odpowiedzi"
             mainBrowser.find_element(By.CLASS_NAME, "css-dekqtb").click()
             self.addToXML(offer_url, "sent_applications.xml", "url")
-            print("Application sent!")
+            print(colored("Application sent!", 'green'))
 
             return True
         except:
             self.addToXML(offer_url, "failed_attempts.xml", "error_url")
-            print("Application for a job failed, url saved in 'failed_attempts.xml' file")
+            print(colored(
+                "ERROR: Application for a job failed, url saved in 'failed_attempts.xml' file", 'red'))
 
             return False
 
@@ -194,67 +152,64 @@ class OlxBot:
 
         return False
 
+    # def isInXML(offer_url, file_name, class_name):
+    #     if not os.path.exists(file_name):
+    #         return False
+        
+    #     tree = ET.parse(file_name)
+    #     root = tree.getroot()
+        
+    #     def search_element(element):
+    #         # Check if the current element matches the class name and contains the offer URL
+    #         if element.tag == class_name and element.text == offer_url:
+    #             return True
+    #         # Recursively search within all child elements
+    #         for child in element:
+    #             if search_element(child):
+    #                 return True
+    #         return False
+        
+    #     return search_element(root)
+
     def getNextPageURL(self):
-        print("Changing to next page")
         try:
             next_button_url = mainBrowser.find_element(
                 By.XPATH, "//*[@data-testid='pagination-forward']").get_attribute('href')
-            print(next_button_url)
             return next_button_url
         except NoSuchElementException as exception:
-            print("Its last page!")
+            print(colored("Its last page!", 'yellow'))
             self.mainTab()
-
-    def askUserDoesHeWant(self, offer_url):
-        print("If you want it, press Y, else N")
-        user_key = readchar.readkey()
-        if user_key == "y" or user_key == 'Y':
-            if self.is_authenticated == 'Not logged in':
-                print("You cannot send messages when you aren't logged in")
-                print("Press B to come back to main tab and log in")
-                user_key = readchar.readkey()
-                if user_key == "B" or "b":
-                    self.mainTab()
-                self.askUserDoesHeWant(offer_url)
-            else:
-                print("Input: Yes")
-                offer_database = open("offerDatabase.txt", "a")
-                offer_database.write(offer_url)
-                offer_database.close()
-                self.sendJobApplication(offer_url)
-        elif user_key == 'n' or user_key == 'N':
-            print("Input: No")
-            offer_database = open("offerDatabase.txt", "a")
-            offer_database.write(offer_url)
-            offer_database.close()
-        elif user_key == readchar.key.CTRL_C:
-            print("Bye")
-            mainBrowser.exit()
-            exit()
-        else:
-            self.askUserDoesHeWant(offer_url)
 
     def getListOffers(self, mode):
         if self.is_authenticated is False:
-            print("ERROR: You're not logged in")
+            print(colored("ERROR: You're not logged in", 'red'))
             return False
+        print("------------------------------")
         print("Getting list of offers")
-        nextPageURL = self.getNextPageURL()
-        array_offer_names = mainBrowser.find_elements(
-            By.CLASS_NAME, "css-13gxtrp")
+        print("------------------------------")
+
+        array_offer_names = self.wait.until(
+            EC.presence_of_all_elements_located((By.CLASS_NAME, "css-13gxtrp")))
         array_offer_urls = []
+        nextPageURL = self.getNextPageURL()
         for offerName in array_offer_names:
             newOfferURL = offerName.get_attribute('href')
             if self.isInXML(newOfferURL, "sent_applications.xml", "url"):
-                print("Skipped - already applied!")
+                print(
+                    colored(f"{offerName.text} - skipped, already applied!", 'yellow'))
+            elif self.isInXML(newOfferURL, "failed_attempts.xml", "ext_application"):
+                print(
+                    colored(f"{offerName.text} - skipped, known as exterior application website", 'yellow'))
             else:
                 print(offerName.text)
                 array_offer_urls.append(newOfferURL)
         try:
             for offerURL in array_offer_urls:
-                self.sendJobApplication(offerURL)
+                if (self.sendJobApplication(offerURL) == "SHUTDOWN"):
+                    return False
         except:
-            print("ERROR: Offers list has changed while applying for another.")
+            print(
+                colored("ERROR: Offers list has changed while applying for another.", 'red'))
         mainBrowser.get(nextPageURL)
         self.getListOffers(mode)
 
@@ -262,7 +217,7 @@ class OlxBot:
         try:
             tree = ET.parse('account_data.xml')
         except:
-            print("ERROR: File 'account_data.xml' not found")
+            print(colored("ERROR: File 'account_data.xml' not found", 'red'))
             return False
         root = tree.getroot()
         login = ""
@@ -284,11 +239,11 @@ class OlxBot:
         if accountData is False:
             return
         mainBrowser.get("https://www.olx.pl/")
-        time.sleep(3)
-        mainBrowser.find_element(By.ID, "onetrust-accept-btn-handler").click()
+        accept_button = self.wait.until(EC.presence_of_element_located(
+            (By.ID, "onetrust-accept-btn-handler")))
+        accept_button.click()
         moj_olx_button_url = mainBrowser.find_element(
             By.XPATH, "//*[@data-cy='myolx-link']").get_attribute('href')
-        print("Logging using predefined login and password")
         mainBrowser.get(moj_olx_button_url)
         mainBrowser.find_element(By.NAME, "username").send_keys(accountData[0])
         mainBrowser.find_element(By.NAME, "password").send_keys(accountData[1])
@@ -304,59 +259,24 @@ class OlxBot:
                 print(
                     "Logging in is taking so much time, please fix your password in config")
                 exit()
-        print("Logged in!")
+        print(colored("Logged in!", 'green'))
         print("------------------------------")
         self.is_authenticated = True
 
-    def settingsTab(self):
-        print("Settings tab here")
-        print("------------------------------")
-        print("1. Add new messages")
-        print("2. Change login")
-        print("3. Edit saved offers")
-        print("4. Come back to main tab")
-        user_key = readchar.readkey()
-        if user_key == '1':
-            print("1")
-        elif user_key == '2':
-            print("2")
-        elif user_key == '3':
-            print("3")
-        elif user_key == '4':
-            self.mainTab()
-
     def mainTab(self):
+        print(colored("------------------------------", 'green'))
+        print(colored("Starting OLX-BOT", 'green'))
+        print(colored("------------------------------", 'green'))
         self.doAuth()
-        if os.path.isfile("offerDatabase.txt") == 0:
-            print("offerDatabase.txt doesn't exist. Creating it")
-            offer_database = open("offerDatabase.txt", "w")
-            offer_database.close()
-        if self.is_authenticated is False:
-            print("------------------------------")
-            print("Hello, program has been made by gbaranski")
-            print("Its used to manage OLX.pl and make your life easier :)")
-            print("------------------------------")
-            print("What would you like to do today?")
-        print("1. Search for new offers")
-        print("2. Search for new offers - no user input")
-        print("3. Settings")
-        user_key = readchar.readkey()
-        if user_key == '1':
-            mainBrowser.get(searching_url)
+        self.readJobApplicationData()
+        if self.jobApplicationData is False:
+            print(
+                colored("ERROR: Failed to read data from job_application_data.xml file", 'red'))
+            return False
+        if self.is_authenticated is True:
+            mainBrowser.get(self.jobApplicationData[0])
             if (self.getListOffers('nocriteria') is False):
-                print("ERROR: getListOffers returned False")
-        elif user_key == '2':
-            mainBrowser.get(searching_url)
-            if (self.getListOffers('skipAsk') is False):
-                print("ERROR: getListOffers returned False")
-        elif user_key == '3':
-            self.settingsTab()
-        elif user_key == readchar.key.CTRL_C:
-            print("Bye")
-            exit()
-        else:
-            print("Select proper key")
-            self.mainTab()
+                print("Shutdown")
 
 
 bot = OlxBot()

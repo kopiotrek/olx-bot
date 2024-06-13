@@ -1,4 +1,3 @@
-account_data.xml
-job_application_data.xml
+*.xml
 *.pdf
 /__pycache__
