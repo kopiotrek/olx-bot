@@ -14,7 +14,7 @@ mainBrowser = Chrome()
 class OlxBot:
     def __init__(self):
         self.is_authenticated = False
-        self.wait = WebDriverWait(mainBrowser, 20)  # Wait up to 20 seconds
+        self.wait = WebDriverWait(mainBrowser, 10)  # Wait up to 20 seconds
 
     def readJobApplicationData(self):
         try:
@@ -76,14 +76,17 @@ class OlxBot:
 
             # time.sleep(2)
             # Wait until the element is visible
-            ok_button = self.wait.until(EC.presence_of_element_located(
+            try:
+                ok_button = WebDriverWait(mainBrowser, 4).until(EC.presence_of_element_located(
                 (By.CLASS_NAME, "css-tory2h")))
 
-            if ok_button.is_displayed():
-                print(colored("------------------------------", 'red'))
-                print(colored("Application limit reached.", 'red'))
-                print(colored("------------------------------", 'red'))
-                return "SHUTDOWN"
+                if ok_button.is_displayed():
+                    print(colored("------------------------------", 'red'))
+                    print(colored("Application limit reached.", 'red'))
+                    print(colored("------------------------------", 'red'))
+                    return "SHUTDOWN"
+            except:
+                pass
 
             message_text_field = mainBrowser.find_element(By.NAME, "message")
             message_text_field.clear()
